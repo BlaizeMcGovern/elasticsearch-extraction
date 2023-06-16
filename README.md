@@ -1,4 +1,4 @@
-# PExtract data from elasticsearch
+# Extract data from elasticsearch
 
 A script to extract data from elastic search.
 
