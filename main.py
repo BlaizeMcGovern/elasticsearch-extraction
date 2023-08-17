@@ -39,7 +39,7 @@ query = {
 }
 
 # Execute the search query
-response = es.search(index=index_name, body=query, scroll='5m', size=1000)
+response = es.search(index=index_name, body=query, scroll='5m', size=10)
 scroll_id = response['_scroll_id']
 hits = response['hits']['hits']
 
@@ -51,21 +51,27 @@ csv_writer = csv.writer(csv_file)
 csv_writer.writerow(included_fields)
 x = 1
 # Write the data rows
+# Write the data rows
 while len(hits) > 0:
     for hit in hits:
-        try:
-            data_row = [hit["_source"][field] for field in included_fields]
-            cleaned_row = [str(value).replace('\uFFFD', '') for value in data_row]
-            cleaned_row.append(hit["_id"])
-            if cleaned_row[22] in tracked_user_list:
-                print("writing row")
-                csv_writer.writerow(cleaned_row)
-        except KeyError as e:
-            print(e)
-            print("skipping row")
-            break
+        data_row = []
+        for field in included_fields:
+            try:
+                value = hit["_source"][field]
+                cleaned_value = str(value).replace('\uFFFD', '') if value is not None else None
+                data_row.append(cleaned_value)
+            except KeyError as e:
+                print(f"KeyError: {e} - Skipping field '{field}'")
+                data_row.append(None)  # Append None for missing fields
+        data_row.append(hit["_id"])
+        if data_row[22] in tracked_user_list:
+            print("writing row")
+            print(x)
+            x += 1
+            csv_writer.writerow(data_row)
     response = es.scroll(scroll_id=scroll_id, scroll='5m')
     hits = response['hits']['hits']
+
 
 # Close the CSV file
 csv_file.close()
